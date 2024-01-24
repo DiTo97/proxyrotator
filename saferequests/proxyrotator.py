@@ -4,13 +4,11 @@ import asyncio
 import ipaddress
 import json
 import logging
-import random
 import typing
-from datetime import datetime, timedelta
+from datetime import datetime
 
 import aiohttp
 import pandas as pd
-import requests
 from bs4 import BeautifulSoup as BS
 
 
@@ -204,7 +202,7 @@ class ProxyRotator:
                 "secure": https_support == "yes",
             }
             for address, port, alpha2_code, anonymity, https_support in available
-            if self._is_valid_proxy(address, anonymity, https_support)
+            if is_valid_ipv4(address)
         ]
 
         # Append to the DataFrame in a thread-safe manner
@@ -236,3 +234,13 @@ class ProxyRotator:
     @property
     def selected(self) -> str:
         return self._selected
+
+
+def is_valid_ipv4(address: str) -> bool:
+    try:
+        address = ipaddress.ip_address(address)
+        valid_ipv4 = isinstance(address, ipaddress.IPv4Address)
+
+        return valid_ipv4
+    except ValueError:
+        return False

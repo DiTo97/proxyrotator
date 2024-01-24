@@ -1,0 +1,26 @@
+[tool.poetry]
+name = "proxyrotator"
+version = "0.1.0"
+description = "A drop-in replacement for requests with automatic proxy rotation for web scraping and anonymity"
+authors = ["Federico Minutoli <fede97.minutoli@gmail.com>"]
+
+[tool.poetry.dependencies]
+python = "^3.10"
+requests = "^2.31.0"
+beautifulsoup4 = "^4.12.3"
+
+[tool.poetry.dev-dependencies]
+pytest = "^6.0"
+pytest-cov = "^2.12"
+codecov = "^2.1"
+
+[tool.black]
+line-length = 88
+target-version = ['py310']
+
+[tool.isort]
+profile = "black"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"

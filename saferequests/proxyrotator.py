@@ -3,13 +3,14 @@
 import asyncio
 import ipaddress
 import json
-import logging
 import typing
 from datetime import datetime
 
 import aiohttp
 import pandas as pd
 from bs4 import BeautifulSoup as BS
+
+from .logging import get_logger
 
 
 class ProxyRotator:
@@ -38,23 +39,15 @@ class ProxyRotator:
         self._max_num_proxies = max_num_proxies
         self._selected = None
         self._verbose = verbose
-        self._logger = self._configure_logger()
+        self._logger = get_logger()
         self._proxy_df = pd.DataFrame(
             columns=["URL", "port", "alpha2_code", "anonymity", "secure"]
         )
+        self._t_refresh = t_refresh
         self._last_download_time = None
         self._cache = cache
         self._livecheck = livecheck  # New attribute for live checking
         self._load_from_cache()
-
-    def _configure_logger(self) -> logging.Logger:
-        logger = logging.getLogger(__name__)
-        logger.setLevel(logging.WARNING)
-        ch = logging.StreamHandler()
-        formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
-        ch.setFormatter(formatter)
-        logger.addHandler(ch)
-        return logger
 
     def _load_from_cache(self) -> None:
         if self._cache is not None:

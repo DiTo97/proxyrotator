@@ -7,3 +7,4 @@ Welcome to Saferequests's Documentation!
    proxyrotator
    sessions
    methods
+   logging

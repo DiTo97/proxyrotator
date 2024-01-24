@@ -27,3 +27,18 @@ jobs:
       env:
         TWINE_USERNAME: __token__
         TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
+
+  publish_docs:
+    needs: deploy
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Build and Publish Documentation on Read the Docs
+      uses: readthedocs/sphinx-reference-action@v2
+      with:
+        version: latest
+        build_dir: docs/
+      env:
+        READTHEDOCS_PROJECT: <your_readthedocs_project_slug>
+        READTHEDOCS_USERNAME: ${{ secrets.READTHEDOCS_USERNAME }}
+        READTHEDOCS_TOKEN: ${{ secrets.READTHEDOCS_TOKEN }}

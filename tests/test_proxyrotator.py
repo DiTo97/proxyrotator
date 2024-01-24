@@ -1,6 +1,6 @@
 import pytest
 
-from proxyrotator import ProxyRotator
+from saferequests import ProxyRotator
 
 
 def test_proxyrotator_rotate_with_filters(caplog):

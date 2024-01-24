@@ -1,11 +1,13 @@
-# proxyrotator
+# saferequests
+
+[![docs status](https://readthedocs.org/projects/saferequests/badge/?version=latest)](https://saferequests.readthedocs.io/en/latest/?badge=latest)
 
 A drop-in replacement for requests with automatic proxy rotation for web scraping and anonymity.
 
 ## usage
 
 ```python
-from proxy_rotator import ProxyRotator
+from saferequests import ProxyRotator
 
 # Create a ProxyRotator instance with default settings
 proxy_rotator = ProxyRotator()
@@ -34,7 +36,7 @@ The module now features parallelized scraping for improved performance. The scra
 ### customization
 
 ```python
-from proxy_rotator import ProxyRotator
+from saferequests import ProxyRotator
 
 # Create a ProxyRotator with specific settings
 proxy_rotator = ProxyRotator(
@@ -56,7 +58,7 @@ print(f"Selected Proxy: {proxy_rotator.selected}")
 ### caching
 
 ```python
-from proxy_rotator import ProxyRotator
+from saferequests import ProxyRotator
 
 # Create a ProxyRotator with caching enabled
 proxy_rotator = ProxyRotator(cache='proxy_cache.json')
@@ -74,7 +76,7 @@ print(proxy_rotator.proxy_df)
 ### live checking
 
 ```python
-from proxy_rotator import ProxyRotator
+from saferequests import ProxyRotator
 
 # Create a ProxyRotator with live checking enabled
 proxy_rotator = ProxyRotator(livecheck=True)

@@ -225,8 +225,6 @@ class ProxyRotator:
         if self._secure is not None:
             self._proxy_df = self._proxy_df[self._proxy_df["secure"] == self._secure]
 
-    # ... Existing methods remain the same ...
-
     @property
     def proxy_df(self) -> pd.DataFrame:
         return self._proxy_df

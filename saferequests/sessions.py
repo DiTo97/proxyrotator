@@ -1,9 +1,9 @@
 import requests
 
-from .rotator import ProxyRotator
+from .proxyrotator import ProxyRotator
 
 
-class ProxiedSession(requests.Session):
+class Session(requests.Session):
     def __init__(self, proxy_rotator=None, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.proxy_rotator = proxy_rotator or ProxyRotator()

@@ -1,5 +1,9 @@
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
+
 [tool.poetry]
-name = "proxyrotator"
+name = "saferequests"
 version = "0.1.0"
 description = "A drop-in replacement for requests with automatic proxy rotation for web scraping and anonymity"
 authors = ["Federico Minutoli <fede97.minutoli@gmail.com>"]
@@ -13,14 +17,33 @@ beautifulsoup4 = "^4.12.3"
 pytest = "^6.0"
 pytest-cov = "^2.12"
 codecov = "^2.1"
+sphinx = "^3.5"
+sphinx-autodoc = "^3.5"
 
 [tool.black]
+include = ".pyi?$"
+exclude = """
+/(
+    .git
+    | .hg
+    | .mypy_cache
+    | .tox
+    | .venv
+    | _build
+    | buck-out
+    | build
+    | dist
+)/
+"""
 line-length = 88
-target-version = ['py310']
+target-version = ["py310"]
 
 [tool.isort]
+include_trailing_comma = true
+lines_after_imports = 2
+multi_line_output = 3
 profile = "black"
+py_version = 310
 
-[build-system]
-requires = ["poetry-core>=1.0.0"]
-build-backend = "poetry.core.masonry.api"
+[tool.poetry.plugins."poetry.plugins.python"] 
+version = "^0.2.0"

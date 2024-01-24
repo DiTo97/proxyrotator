@@ -1,9 +1,9 @@
-from proxyrotator import ProxiedSession, ProxyRotator
+from saferequests import ProxyRotator, Session
 
 
 def test_proxiedsession_request_with_rotated_proxy():
     proxy_rotator = ProxyRotator()
-    session = ProxiedSession(proxy_rotator=proxy_rotator)
+    session = Session(proxy_rotator=proxy_rotator)
 
     # Ensure that the request does not raise an exception
     response = session.get("https://www.example.com")
@@ -15,7 +15,7 @@ def test_proxiedsession_request_with_rotated_proxy():
 
 def test_proxiedsession_request_with_404_error():
     proxy_rotator = ProxyRotator()
-    session = ProxiedSession(proxy_rotator=proxy_rotator)
+    session = Session(proxy_rotator=proxy_rotator)
 
     # Ensure that the request raises an exception for a 404 error
     with pytest.raises(requests.exceptions.HTTPError) as e_info:
@@ -26,7 +26,7 @@ def test_proxiedsession_request_with_404_error():
 
 def test_proxiedsession_request_with_non_404_error():
     proxy_rotator = ProxyRotator()
-    session = ProxiedSession(proxy_rotator=proxy_rotator)
+    session = Session(proxy_rotator=proxy_rotator)
 
     # Ensure that the request retries with the same proxy for a non-404 error
     with pytest.raises(requests.exceptions.RequestException):

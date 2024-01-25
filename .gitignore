@@ -1,0 +1,9 @@
+# cache
+__pycache__/
+
+# IDE
+.idea/
+.vscode/
+
+# PIP
+**/*.egg-info/

@@ -7,18 +7,22 @@ name = "saferequests"
 version = "0.1.0"
 description = "A drop-in replacement for requests with automatic proxy rotation for web scraping and anonymity"
 authors = ["Federico Minutoli <fede97.minutoli@gmail.com>"]
+license = "MIT"
+readme = "README.md"
+keywords = ["requests", "proxy-rotation", "web-scraping", "anonymity"]
 
 [tool.poetry.dependencies]
-python = "^3.10"
-requests = "^2.31.0"
-beautifulsoup4 = "^4.12.3"
+python = "~3.10"
+requests = "~2.31"
+beautifulsoup4 = "~4.12"
 
-[tool.poetry.dev-dependencies]
-pytest = "^6.0"
-pytest-cov = "^2.12"
+[tool.poetry.dev-dependencies.testing]
+pytest = "^7.4"
+pytest-cov = "^4.1"
 codecov = "^2.1"
+
+[tool.poetry.dev-dependencies.docs]
 sphinx = "^3.5"
-sphinx-autodoc = "^3.5"
 
 [tool.black]
 include = ".pyi?$"
@@ -45,5 +49,5 @@ multi_line_output = 3
 profile = "black"
 py_version = 310
 
-[tool.poetry.plugins."poetry.plugins.python"] 
+[tool.poetry.plugins."poetry.plugins.python"]
 version = "^0.2.0"

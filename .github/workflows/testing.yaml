@@ -1,44 +1,58 @@
-name: Test
+name: testing
 
 on:
   pull_request:
     branches:
       - main
+  push:
+    branches:
+      - main
 
 jobs:
-  test:
-    runs-on: ubuntu-latest
+  testing:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [macos-latest, ubuntu-latest, windows-latest]
 
     steps:
-    - uses: actions/checkout@v2
-
-    - name: Set up Python
-      uses: actions/setup-python@v2
+    - uses: actions/checkout@v4
+    - uses: actions/setup-python@v5
       with:
-        python-version: '3.8'
+        python-version: "3.10"
+        cache: "pip"
 
-    - name: Install dependencies
+    - name: dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install -r requirements.txt
-        pip install .
+        python -m pip install poetry
 
-    - name: Run tests with coverage
+        poetry install
+        poetry install --dev --group testing
+
+        poetry add .
+
+    - name: testing with coverage
       run: |
-        pytest --cov=proxyrotator tests/
+        pytest --cov=saferequests --cov-report=xml tests/
       env:
         COVERAGE_FILE: ${{ runner.workspace }}/coverage.xml
 
-    - name: Upload coverage report
-      uses: codecov/codecov-action@v2
+    - name: coverage report to codecov
+      uses: codecov/codecov-action@v3
       with:
+        fail_ci_if_error: true
         file: ${{ runner.workspace }}/coverage.xml
         flags: unittests
+        name: codecov-umbrella
+        token: ${{ secrets.CODECOV_TOKEN }}
+        verbose: true
 
-    - name: Check coverage
+    - name: coverage satisfaction
       run: |
-        COVERAGE=$(bash <(curl -s https://codecov.io/bash) -q -f ${{ runner.workspace }}/coverage.xml | grep "unit tests" | awk '{print $4}' | tr -d '%')
-        if [ "$COVERAGE" -lt 95 ]; then
-          echo "Error: Coverage is below 95% ($COVERAGE%)."
-          exit 1
+        coverage=$(bash <(curl -s https://codecov.io/bash) -q -f ${{ runner.workspace }}/coverage.xml | grep "unit tests" | awk '{print $4}' | tr -d '%')
+
+        if [ "$coverage" -lt 95 ]; then
+            echo "coverage is below 95% ($coverage%)"
+            exit 1
         fi

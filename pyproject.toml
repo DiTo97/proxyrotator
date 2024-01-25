@@ -16,12 +16,10 @@ python = "~3.10"
 requests = "~2.31"
 beautifulsoup4 = "~4.12"
 
-[tool.poetry.dev-dependencies.testing]
+[tool.poetry.dev-dependencies]
 pytest = "^7.4"
 pytest-cov = "^4.1"
 codecov = "^2.1"
-
-[tool.poetry.dev-dependencies.docs]
 sphinx = "^3.5"
 
 [tool.black]

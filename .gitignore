@@ -1,9 +1,15 @@
+# build
+build/
+
 # cache
 __pycache__/
 
 # IDE
 .idea/
 .vscode/
+
+# packaging
+dist/
 
 # PIP
 **/*.egg-info/

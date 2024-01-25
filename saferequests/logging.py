@@ -1,4 +1,4 @@
-"""A minimal logging module for any library"""
+"""A minimal utility module for centralized logging"""
 import logging
 from functools import lru_cache
 

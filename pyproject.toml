@@ -20,7 +20,8 @@ beautifulsoup4 = "~4.12"
 pytest = "^7.4"
 pytest-cov = "^4.1"
 codecov = "^2.1"
-sphinx = "^3.5"
+sphinx = "^7.2"
+sphinx-autodoc-typehints = "^1.25"
 
 [tool.black]
 include = ".pyi?$"

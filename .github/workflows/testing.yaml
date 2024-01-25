@@ -30,7 +30,7 @@ jobs:
 
     - name: testing with coverage
       run: |
-        pytest --cov=saferequests --cov-report=xml tests/
+        poetry run pytest --cov=saferequests --cov-report=xml tests/
       env:
         COVERAGE_FILE: ${{ runner.workspace }}/coverage.xml
 

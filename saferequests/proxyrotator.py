@@ -1,239 +1,262 @@
-# your_module_name.py
-
 import asyncio
 import ipaddress
-import json
-import typing
+import pathlib
+import pickle
+import random
 from datetime import datetime
+from functools import reduce
 
 import aiohttp
-import pandas as pd
+import aiostream
 from bs4 import BeautifulSoup as BS
 
-from .logging import get_logger
+from saferequests.datamodels import Anonymity, Proxy
+
+
+_URL_freesources = ["https://sslproxies.org/", "https://free-proxy-list.net/"]
+_URL_sanity = "https://ip.oxylabs.io/ip"
+
+
+def is_ipv4_address(address: str | Proxy) -> bool:
+    """If a proxy address conforms to a IPv4 address"""
+    if isinstance(address, Proxy):
+        address = address.address
+
+    try:
+        ipaddress.IPv4Address(address)
+        return True
+    except ipaddress.AddressValueError:
+        return False
+
+
+async def is_reachable_address(session: aiohttp.ClientSession, address: Proxy) -> bool:
+    """If a proxy address is reachable"""
+    try:
+        async with session.get(
+            _URL_sanity, proxy=f"http://{address}", allow_redirects=False, timeout=1.0
+        ) as response:
+            return response.status == 200
+    except asyncio.TimeoutError:
+        return False
+
+
+async def _batch_download(session: aiohttp.ClientSession, endpoint: str) -> set[Proxy]:
+    """It downloads a batch of proxy addresses from a free public source"""
+    async with session.get(endpoint) as response:
+        if response.status != 200:
+            return set()
+
+        response = await response.text()
+
+    soup = BS(response, "html5lib")
+
+    available = zip(
+        map(lambda x: x.text.lower(), soup.findAll("td")[::8]),
+        map(lambda x: x.text.lower(), soup.findAll("td")[1::8]),
+        map(lambda x: x.text.upper(), soup.findAll("td")[2::8]),
+        map(lambda x: x.text.lower(), soup.findAll("td")[4::8]),
+        map(lambda x: x.text.lower(), soup.findAll("td")[6::8]),
+    )
+
+    available = set(
+        Proxy(
+            address=address,
+            port=port,
+            country=country,
+            anonymity=Anonymity.from_string(anonymity),
+            secure=secure == "yes",
+        )
+        for address, port, country, anonymity, secure in available
+    )
+
+    return available
 
 
 class ProxyRotator:
-    _URL_freexies = ["https://sslproxies.org/", "https://free-proxy-list.net/"]
+    """A class that automatically rotates proxy addresses for HTTP requests
 
-    CSV_FILENAME = "proxies.csv"
-    URL_TO_CHECK = "https://ip.oxylabs.io/ip"
-    TIMEOUT_IN_SECONDS = 10
+    It allows specifying various filters, such as anonymity level, connection
+    security, ISO 3166-1 alpha-2 country code, and downloading from free public sources,
+    while ensuring the sanity of any proxy address retrieved.
+    """
+
+    _anonymity: Anonymity | None
+    _blockedset: set[Proxy]
+    _cachedir: pathlib.Path | None
+    _countryset: set[str] | None
+    _downloaded: datetime | None
+    _livecheck: bool
+    _maxshape: int
+    _crawledset: set[Proxy]
+    _schedule: float
+    _secure: bool
+    _selected: Proxy | None
 
     def __init__(
         self,
         *,
-        anonymity: typing.Optional[str] = None,
+        anonymity: Anonymity | None = None,
+        cachedir: str | None = None,
+        countryset: set[str] | None = None,
+        livecheck: bool = False,
+        maxshape: int = 0,
+        schedule: float = 0.0,
         secure: bool = True,
-        country_codes_alpha2: typing.Optional[typing.Set[str]] = None,
-        max_num_proxies: int = -1,
-        verbose: bool = False,
-        t_refresh: int = -1,
-        cache: typing.Optional[str] = None,
-        livecheck: bool = False,  # New parameter for live checking
     ):
-        self._blocked = set()
-        self._secure = secure
         self._anonymity = anonymity
-        self._country_codes_alpha2 = country_codes_alpha2
-        self._max_num_proxies = max_num_proxies
+        self._blockedset = set()
+        self._cachedir = None
+        self._countryset = countryset
+        self._downloaded = None
+        self._livecheck = livecheck
+        self._maxshape = maxshape
+        self._crawledset = set()
+        self._schedule = schedule
+        self._secure = secure
         self._selected = None
-        self._verbose = verbose
-        self._logger = get_logger()
-        self._proxy_df = pd.DataFrame(
-            columns=["URL", "port", "alpha2_code", "anonymity", "secure"]
-        )
-        self._t_refresh = t_refresh
-        self._last_download_time = None
-        self._cache = cache
-        self._livecheck = livecheck  # New attribute for live checking
-        self._load_from_cache()
 
-    def _load_from_cache(self) -> None:
-        if self._cache is not None:
-            try:
-                with open(self._cache, "r") as file:
-                    cache_data = json.load(file)
-                    self._proxy_df = pd.DataFrame(cache_data.get("proxy_data", []))
-            except (FileNotFoundError, json.JSONDecodeError):
-                pass
+        if cachedir:
+            self._cachedir = pathlib.Path(cachedir).expanduser().resolve()
 
-    def _save_to_cache(self) -> None:
-        if self._cache is not None:
-            cache_data = {"proxy_data": self._proxy_df.to_dict(orient="records")}
-            with open(self._cache, "w") as file:
-                json.dump(cache_data, file)
+        self._from_cachedir()
 
-    def _t_refresh_enabled(self) -> bool:
-        return self._t_refresh > 0
-
-    def _time_to_refresh(self) -> bool:
-        if self._last_download_time is None:
-            return True
-
-        elapsed_time = datetime.now() - self._last_download_time
-        return elapsed_time.total_seconds() > self._t_refresh
-
-    async def check_proxy(self, proxy: str) -> bool:
-        try:
-            session_timeout = aiohttp.ClientTimeout(
-                total=None,
-                sock_connect=self.TIMEOUT_IN_SECONDS,
-                sock_read=self.TIMEOUT_IN_SECONDS,
-            )
-            async with aiohttp.ClientSession(timeout=session_timeout) as session:
-                async with session.get(
-                    self.URL_TO_CHECK,
-                    proxy=f"http://{proxy}",
-                    timeout=self.TIMEOUT_IN_SECONDS,
-                ) as resp:
-                    return resp.status == 200
-        except Exception as error:
-            self._logger.warning("Proxy %s responded with an error: %s", proxy, error)
-            return False
-
-    async def livecheck_proxies(self) -> None:
-        tasks = [
-            self.check_proxy(row["URL"] + ":" + str(row["port"]))
-            for index, row in self._proxy_df.iterrows()
-        ]
-        results = await asyncio.gather(*tasks)
-
-        for result, (_, row) in zip(results, self._proxy_df.iterrows()):
-            if not result:
-                proxy = f"{row['URL']}:{row['port']}"
-                self._logger.warning("Removing invalid proxy: %s", proxy)
-                self._blocked.add(proxy)
-
-    async def _download_and_pop(self) -> None:
-        if self.num_available == 0:
-            self._download()
-
-        if self.num_available == 0:
-            self._selected = None
-            return
-
-        if self._livecheck:
-            await self.livecheck_proxies()
-
-        self._apply_filters()
-        selected_row = self._proxy_df.sample(1).iloc[0]
-        self._selected = f"{selected_row['URL']}:{selected_row['port']}"
-
-    def rotate(self) -> None:
-        if self._selected is not None:
-            self._blocked.add(self._selected)
-
-        if self._t_refresh_enabled() and self._time_to_refresh():
-            self._download()
-
-        self._download_and_pop()
-        self._save_to_cache()
-
-    async def _download(self):
-        if self._max_num_proxies == 0:
-            return
-
-        if self._verbose:
-            message = "Downloading proxies..."
-            print(message)
-
-        self._proxy_df = pd.DataFrame(
-            columns=["URL", "port", "alpha2_code", "anonymity", "secure"]
-        )
-
-        async with aiohttp.ClientSession() as session:
-            # Create a list to store tasks for each URL
-            tasks = [
-                self._download_url(session, endpoint) for endpoint in self._URL_freexies
-            ]
-
-            # Gather all tasks to execute concurrently
-            await asyncio.gather(*tasks)
-
-        # Remove blocked proxies
-        self._proxy_df = self._proxy_df[
-            ~self._proxy_df["URL"]
-            .astype(str)
-            .str.cat(self._proxy_df["port"].astype(str), sep=":")
-            .isin(self._blocked)
-        ]
-
-        abundance = self.num_available > self._max_num_proxies
-
-        if abundance and self._max_num_proxies > -1:
-            self._proxy_df = self._proxy_df.sample(n=self._max_num_proxies)
-
-        self._last_download_time = datetime.now()
-
-    async def _download_url(self, session, endpoint):
-        response = await session.get(endpoint)
-        soup = BS(response.content, "html5lib")
-
-        addresses = soup.findAll("td")[::8]
-        ports = soup.findAll("td")[1::8]
-        country_codes = soup.findAll("td")[2::8]  # Placeholder for country codes
-        anonymities = soup.findAll("td")[4::8]
-        supports_https = soup.findAll("td")[6::8]
-
-        available = list(
-            zip(
-                map(lambda x: x.text.lower(), addresses),
-                map(lambda x: x.text.lower(), ports),
-                map(lambda x: x.text.lower(), country_codes),
-                map(lambda x: x.text.lower(), anonymities),
-                map(lambda x: x.text.lower(), supports_https),
-            )
-        )
-
-        available = [
-            {
-                "URL": address,
-                "port": int(port),
-                "alpha2_code": alpha2_code.upper(),  # Assuming country codes are uppercased
-                "anonymity": anonymity,
-                "secure": https_support == "yes",
-            }
-            for address, port, alpha2_code, anonymity, https_support in available
-            if is_valid_ipv4(address)
-        ]
-
-        # Append to the DataFrame in a thread-safe manner
-        async with self._proxy_df_lock:
-            self._proxy_df = self._proxy_df.append(available, ignore_index=True)
-
-    def _apply_filters(self) -> None:
-        if self._country_codes_alpha2:
-            self._proxy_df = self._proxy_df[
-                self._proxy_df["alpha2_code"].isin(self._country_codes_alpha2)
-            ]
-
-        if self._anonymity:
-            self._proxy_df = self._proxy_df[
-                self._proxy_df["anonymity"] == self._anonymity
-            ]
-
-        if self._secure is not None:
-            self._proxy_df = self._proxy_df[self._proxy_df["secure"] == self._secure]
+    def __len__(self) -> int:
+        """The number of crawled proxy addresses"""
+        return len(self._crawledset)
 
     @property
-    def proxy_df(self) -> pd.DataFrame:
-        return self._proxy_df
+    def crawledset(self) -> set[Proxy]:
+        """The set of crawled proxy addresses"""
+        return self._crawledset
 
     @property
-    def num_available(self) -> int:
-        return len(self._proxy_df)
-
-    @property
-    def selected(self) -> str:
+    def selected(self) -> Proxy | None:
+        """The selected proxy address"""
         return self._selected
 
+    def rotate(self) -> None:
+        """It rotates blocking the selected proxy address"""
+        if self._selected is not None:
+            self._blockedset.add(self._selected)
+            self._selected = None
 
-def is_valid_ipv4(address: str) -> bool:
-    try:
-        address = ipaddress.ip_address(address)
-        valid_ipv4 = isinstance(address, ipaddress.IPv4Address)
+        if self._should_download():
+            asyncio.run(self._download())
 
-        return valid_ipv4
-    except ValueError:
-        return False
+        if len(self._crawledset) > 0:
+            self._selected = self._crawledset.pop()
+
+        self._to_cachedir()
+
+    def _from_cachedir(self) -> None:
+        """It loads the rotator state from the cache dir"""
+        if not self._cachedir:
+            return
+
+        cacheset = self._cachedir / "saferequests.pkl"
+
+        if not cacheset.exists():
+            return
+
+        with cacheset.open("rb") as f:
+            M = pickle.load(f)
+
+        assert self._anonymity == M["anonymity"], "The anonymity level has changed"
+        assert self._secure == M["secure"], "The security protocol has changed"
+
+        self._blockedset = M["blockedset"]
+        self._crawledset = M["crawledset"]
+        self._selected = M["selected"]
+
+    def _should_download(self) -> bool:
+        """If a batch of proxy addressess should be downloaded"""
+        if self._schedule > 0.0:
+            if self._downloaded is None:
+                return True
+
+            elapsed = datetime.now() - self._downloaded
+            elapsed = elapsed.total_seconds()
+
+            if elapsed > self._schedule:
+                return True
+
+        return len(self._crawledset) == 0
+
+    def _should_keep(self, address: Proxy) -> bool:
+        """If a proxy address should be kept after filtering"""
+        if not is_ipv4_address(address):
+            return False
+
+        if self._anonymity is not None:
+            if address.anonymity != self._anonymity:
+                return False
+
+        if self._countryset is not None:
+            if address.country not in self._countryset:
+                return False
+
+        if address.secure != self._secure:
+            return False
+
+        return True
+
+    def _to_cachedir(self) -> None:
+        """It saves the rotator state to the cache dir"""
+        if not self._cachedir:
+            return
+
+        if not self._cachedir.exists():
+            self._cachedir.mkdir(parents=True)
+
+        cacheset = self._cachedir / "saferequests.pkl"
+
+        M = {
+            "anonymity": self._anonymity,
+            "blockedset": self._blockedset,
+            "crawledset": self._crawledset,
+            "secure": self._secure,
+            "selected": self._selected,
+        }
+
+        with cacheset.open("wb") as f:
+            pickle.dump(M, f)
+
+    async def _download(self):
+        session_timeout = aiohttp.ClientTimeout(sock_connect=1.0, sock_read=10.0)
+
+        async with aiohttp.ClientSession(timeout=session_timeout) as session:
+            available = await asyncio.gather(
+                *[_batch_download(session, endpoint) for endpoint in _URL_freesources]
+            )
+
+        available = reduce(lambda x, y: x | y, available)
+        available = available - self._blockedset
+        available = set(filter(self._should_keep, available))
+
+        if self._livecheck:
+            session_timeout = aiohttp.ClientTimeout(sock_connect=10.0, sock_read=1.0)
+
+            async with aiohttp.ClientSession(timeout=session_timeout) as session:
+                iterator = aiostream.stream.iterate(available)
+                iterator = aiostream.stream.chunks(iterator, 10)  # batch size
+
+                async with iterator.stream() as chunkset:
+                    async for B in chunkset:
+                        reachable = await asyncio.gather(
+                            *[is_reachable_address(session, address) for address in B]
+                        )
+
+                        for status, address in zip(reachable, B):
+                            if not status:
+                                available.remove(address)
+                                self._blockedset.add(address)
+
+        self._crawledset.update(available)
+
+        if self._maxshape > 0:
+            abundance = len(self._crawledset) > self._maxshape
+
+            if abundance:
+                self._crawledset = set(random.sample(self._crawledset, self._maxshape))
+
+        self._downloaded = datetime.now()

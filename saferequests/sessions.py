@@ -1,46 +1,42 @@
+from typing import Any
+
 import requests
 
-from .proxyrotator import ProxyRotator
+from saferequests.proxyrotator import ProxyRotator
 
 
 class Session(requests.Session):
-    def __init__(self, proxy_rotator=None, *args, **kwargs):
+    def __init__(
+        self,
+        *args: Any,
+        max_rotations: int = 10,
+        rotator: ProxyRotator | None = None,
+        **kwargs: Any,
+    ):
         super().__init__(*args, **kwargs)
-        self.proxy_rotator = proxy_rotator or ProxyRotator()
-        self.current_proxy = None
 
-    def request(self, method, url, *args, **kwargs):
-        if not self.current_proxy or not self.proxy_successful(
-            method, url, *args, **kwargs
-        ):
-            self.proxy_rotator.rotate()
-            self.current_proxy = self.proxy_rotator.selected
+        self._rotator = rotator or ProxyRotator()
+        self._max_rotations = max_rotations
 
-        if self.current_proxy:
-            kwargs.setdefault(
-                "proxies", {"http": self.current_proxy, "https": self.current_proxy}
-            )
+    def request(
+        self, method: str, url: str, *args: Any, **kwargs: Any
+    ) -> requests.Response:
+        if not self._rotator.selected:
+            self._rotator.rotate()
 
-        try:
+        for _ in range(self._max_rotations):
+            if not self._rotator.selected:
+                raise requests.HTTPError("No available proxy addresses")
+
+            address = str(self._rotator.selected)
+            kwargs["proxies"] = {"http": address, "https": address}
+
             response = super().request(method, url, *args, **kwargs)
-            response.raise_for_status()
+
+            if response.status_code != 200:
+                self._rotator.rotate()
+                continue
+
             return response
-        except requests.RequestException as e:
-            if isinstance(e, requests.HTTPError) and e.response.status_code == 404:
-                raise e
-            else:
-                print(
-                    f"Request failed with non-404 error. Retrying with the same proxy..."
-                )
-                return self.request(method, url, *args, **kwargs)
 
-    def proxy_successful(self, method, url, *args, **kwargs):
-        try:
-            response = super().request(method, url, *args, **kwargs)
-            response.raise_for_status()
-            return True
-        except requests.RequestException as e:
-            return False
-
-    def close(self):
-        pass
+        raise requests.HTTPError("No proxy rotations left")

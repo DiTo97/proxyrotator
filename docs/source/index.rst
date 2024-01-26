@@ -9,6 +9,7 @@ A drop-in replacement for requests with automatic proxy rotation for web scrapin
    :maxdepth: 2
    :caption: contents
 
+   saferequests/datamodels.rst
    saferequests/logging.rst
    saferequests/methods.rst
    saferequests/proxyrotator.rst

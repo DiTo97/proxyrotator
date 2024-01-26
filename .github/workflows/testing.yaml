@@ -34,21 +34,22 @@ jobs:
       env:
         COVERAGE_FILE: ${{ runner.workspace }}/coverage.xml
 
+    - name: coverage satisfaction
+      run: |
+        coverage=$(grep -oPm1 'line-rate="\K[^"]+' ${{ runner.workspace }}/coverage.xml | awk '{printf "%.2f\n", $1 * 100}')
+
+        if [ $(bc <<< "$coverage < 95.00") -eq 0 ]
+        then
+            echo "coverage is below 95.00% ($coverage%)"
+            exit 1
+        fi
+
     - name: coverage report to codecov
       uses: codecov/codecov-action@v3
       with:
         fail_ci_if_error: true
         file: ${{ runner.workspace }}/coverage.xml
-        flags: unittests
-        name: codecov-umbrella
+        flags: unittesting
+        name: unittesting-coverage
         token: ${{ secrets.CODECOV_TOKEN }}
         verbose: true
-
-    - name: coverage satisfaction
-      run: |
-        coverage=$(bash <(curl -s https://codecov.io/bash) -q -f ${{ runner.workspace }}/coverage.xml | grep "unit tests" | awk '{print $4}' | tr -d '%')
-
-        if [ "$coverage" -lt 95 ]; then
-            echo "coverage is below 95% ($coverage%)"
-            exit 1
-        fi

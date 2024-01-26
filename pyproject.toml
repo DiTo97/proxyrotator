@@ -16,10 +16,12 @@ python = "~3.10"
 aiohttp = "~3.9"
 aiostream = "~0.5"
 beautifulsoup4 = "~4.12"
+html5lib = "~1.1"
 requests = "~2.31"
 
 [tool.poetry.dev-dependencies]
 pytest = "^7.4"
+pytest-asyncio = "^0.23"
 pytest-cov = "^4.1"
 codecov = "^2.1"
 sphinx = "^7.2"

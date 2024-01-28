@@ -2,6 +2,7 @@ import asyncio
 import ipaddress
 import pathlib
 import pickle
+import platform
 import random
 from datetime import datetime
 from functools import reduce
@@ -11,6 +12,14 @@ import aiostream
 from bs4 import BeautifulSoup as BS
 
 from saferequests.datamodels import Anonymity, Proxy
+
+
+# https://github.com/MagicStack/uvloop/issues/14
+if platform.system().lower() != "Windows":
+    import uvloop
+
+    #
+    asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
 
 
 _URL_freesources = ["https://sslproxies.org/", "https://free-proxy-list.net/"]

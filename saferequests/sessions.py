@@ -2,14 +2,14 @@ from typing import Any
 
 import requests
 
-from saferequests.proxyrotator import ProxyRotator
+from saferequests.proxyrotation.rotator import ProxyRotator
 
 
 class Session(requests.Session):
     def __init__(
         self,
         *args: Any,
-        max_rotations: int = 10,
+        max_rotations: int = 5,
         rotator: ProxyRotator | None = None,
         **kwargs: Any,
     ):
@@ -32,6 +32,9 @@ class Session(requests.Session):
             kwargs["proxies"] = {"http": address, "https": address}
 
             response = super().request(method, url, *args, **kwargs)
+
+            if response.status_code == 404:
+                return response
 
             if response.status_code != 200:
                 self._rotator.rotate()

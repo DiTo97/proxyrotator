@@ -79,22 +79,23 @@ class Repository(abc_Repository):
     ) -> tuple[set[Proxy], set[Proxy]]:
         timeout = aiohttp.ClientTimeout(sock_connect=10.0, sock_read=1.0)
 
+        positive = set()
+        negative = set()
+
         async with aiohttp.ClientSession(timeout=timeout) as session:
             iterator = aiostream.stream.iterate(available)
             iterator = aiostream.stream.chunks(iterator, batchsize or len(available))
 
             async with iterator.stream() as chunkset:
                 async for batchset in chunkset:
-                    _ = await asyncio.gather(
+                    response = await asyncio.gather(
                         *[self._is_reachable(session, address) for address in batchset]
                     )
 
-                    # for status, address in zip(reachable, B):
-                    #     if not status:
-                    #         available.remove(address)
-                    #         self._blockedset.add(address)
+                    for x in zip(response, batchset):
+                        positive.add(x[1]) if x[0] else negative.add(x[1])
 
-        return set(), set()
+        return positive, negative
 
     async def _is_reachable(
         self, session: aiohttp.ClientSession, address: Proxy

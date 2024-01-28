@@ -6,64 +6,63 @@ from saferequests import sessions
 
 
 def request(
-    method: str, url: str, max_rotations: int = 10, **kwargs: Any
+    method: str, endpoint: str, max_rotations: int = 10, **kwargs: Any
 ) -> requests.Response:
     """It sends a HTTP request with the given method"""
     with sessions.Session() as session:
-        return session.request(method, url, max_rotations=max_rotations, **kwargs)
+        return session.request(method, endpoint, max_rotations=max_rotations, **kwargs)
 
 
 def get(
-    url: str, max_rotations: int = 10, params: Any | None = None, **kwargs: Any
+    endpoint: str, max_rotations: int = 5, params: Any | None = None, **kwargs: Any
 ) -> requests.Response:
     """It sends a GET request"""
-    return request("get", url, max_rotations=max_rotations, params=params, **kwargs)
-
-
-def options(url: str, max_rotations: int = 10, **kwargs: Any) -> requests.Response:
-    """It sends a OPTIONS request"""
-    return request("options", url, max_rotations=max_rotations, **kwargs)
-
-
-def head(url: str, max_rotations: int = 10, **kwargs: Any) -> requests.Response:
-    """It sends a HEAD request"""
-    kwargs.setdefault("allow_redirects", False)
-    return request("head", url, max_rotations=max_rotations, **kwargs)
-
-
-def post(
-    url: str,
-    max_rotations: int = 10,
-    data: Any | None = None,
-    json: Any | None = None,
-    **kwargs: Any,
-) -> requests.Response:
-    """It sends a POST request"""
     return request(
-        "post", url, max_rotations=max_rotations, data=data, json=json, **kwargs
+        "get", endpoint, max_rotations=max_rotations, params=params, **kwargs
     )
 
 
+def options(endpoint: str, max_rotations: int = 5, **kwargs: Any) -> requests.Response:
+    """It sends a OPTIONS request"""
+    return request("options", endpoint, max_rotations=max_rotations, **kwargs)
+
+
+def head(endpoint: str, max_rotations: int = 5, **kwargs: Any) -> requests.Response:
+    """It sends a HEAD request"""
+    kwargs.setdefault("allow_redirects", False)
+    return request("head", endpoint, max_rotations=max_rotations, **kwargs)
+
+
+def post(
+    endpoint: str,
+    max_rotations: int = 5,
+    data: Any | None = None,
+    **kwargs: Any,
+) -> requests.Response:
+    """It sends a POST request"""
+    return request("post", endpoint, max_rotations=max_rotations, data=data, **kwargs)
+
+
 def put(
-    url: str,
-    max_rotations: int = 10,
+    endpoint: str,
+    max_rotations: int = 5,
     data: Any | None = None,
     **kwargs: Any,
 ) -> requests.Response:
     """It sends a PUT request"""
-    return request("put", url, max_rotations=max_rotations, data=data, **kwargs)
+    return request("put", endpoint, max_rotations=max_rotations, data=data, **kwargs)
 
 
 def patch(
-    url: str,
-    max_rotations: int = 10,
+    endpoint: str,
+    max_rotations: int = 5,
     data: Any | None = None,
     **kwargs: Any,
 ) -> requests.Response:
     """It sends a PATCH request"""
-    return request("patch", url, max_rotations=max_rotations, data=data, **kwargs)
+    return request("patch", endpoint, max_rotations=max_rotations, data=data, **kwargs)
 
 
-def delete(url: str, max_rotations: int = 10, **kwargs: Any) -> requests.Response:
+def delete(endpoint: str, max_rotations: int = 5, **kwargs: Any) -> requests.Response:
     """It sends a DELETE request"""
-    return request("delete", url, max_rotations=max_rotations, **kwargs)
+    return request("delete", endpoint, max_rotations=max_rotations, **kwargs)

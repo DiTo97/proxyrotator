@@ -6,7 +6,7 @@ from saferequests import sessions
 
 
 def request(
-    method: str, endpoint: str, max_rotations: int = 10, **kwargs: Any
+    method: str, endpoint: str, max_rotations: int = 5, **kwargs: Any
 ) -> requests.Response:
     """It sends a HTTP request with the given method"""
     with sessions.Session() as session:

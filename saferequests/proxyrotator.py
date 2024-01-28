@@ -15,7 +15,7 @@ from saferequests.datamodels import Anonymity, Proxy
 
 
 # https://github.com/MagicStack/uvloop/issues/14
-if platform.system().lower() != "Windows":
+if platform.system().lower() != "windows":
     import uvloop
 
     #
@@ -162,20 +162,22 @@ class ProxyRotator:
         if not self._cachedir:
             return
 
-        cacheset = self._cachedir / "saferequests.pkl"
+        cacheset = self._cachedir / "snapshot.pickle"
 
         if not cacheset.exists():
             return
 
         with cacheset.open("rb") as f:
-            M = pickle.load(f)
+            snapshot = pickle.load(f)
 
-        assert self._anonymity == M["anonymity"], "The anonymity level has changed"
-        assert self._secure == M["secure"], "The security protocol has changed"
+        assert (
+            self._anonymity == snapshot["anonymity"]
+        ), "The anonymity level has changed"
+        assert self._secure == snapshot["secure"], "The security protocol has changed"
 
-        self._blockedset = M["blockedset"]
-        self._crawledset = M["crawledset"]
-        self._selected = M["selected"]
+        self._blockedset = snapshot["blockedset"]
+        self._crawledset = snapshot["crawledset"]
+        self._selected = snapshot["selected"]
 
     def _should_download(self) -> bool:
         """If a batch of proxy addressess should be downloaded"""
@@ -217,9 +219,9 @@ class ProxyRotator:
         if not self._cachedir.exists():
             self._cachedir.mkdir(parents=True)
 
-        cacheset = self._cachedir / "saferequests.pkl"
+        cacheset = self._cachedir / "snapshot.pickle"
 
-        M = {
+        snapshot = {
             "anonymity": self._anonymity,
             "blockedset": self._blockedset,
             "crawledset": self._crawledset,
@@ -228,7 +230,7 @@ class ProxyRotator:
         }
 
         with cacheset.open("wb") as f:
-            pickle.dump(M, f)
+            pickle.dump(snapshot, f)
 
     async def _download(self):
         session_timeout = aiohttp.ClientTimeout(sock_connect=1.0, sock_read=10.0)

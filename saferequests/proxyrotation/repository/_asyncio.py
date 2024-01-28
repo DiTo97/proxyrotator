@@ -54,6 +54,22 @@ async def _batch_download(session: aiohttp.ClientSession, endpoint: str) -> set[
     return available
 
 
+async def _is_address_reachable(
+    self, session: aiohttp.ClientSession, address: Proxy
+) -> bool:
+    """If a proxy address is reachable"""
+    try:
+        async with session.get(
+            URL_sanity,
+            proxy=f"http://{address}",
+            allow_redirects=False,
+            timeout=1.0,
+        ) as response:
+            return response.status == 200
+    except asyncio.TimeoutError:
+        return False
+
+
 class Repository(abc_Repository):
     def batch_download(self) -> set[Proxy]:
         return asyncio.run(self._batch_download())
@@ -82,32 +98,20 @@ class Repository(abc_Repository):
         positive = set()
         negative = set()
 
+        batchsize = batchsize if batchsize > 0 else len(available)
+        batchsize = min(batchsize, len(available))
+
         async with aiohttp.ClientSession(timeout=timeout) as session:
             iterator = aiostream.stream.iterate(available)
-            iterator = aiostream.stream.chunks(iterator, batchsize or len(available))
+            iterator = aiostream.stream.chunks(iterator, batchsize)
 
             async with iterator.stream() as chunkset:
                 async for batchset in chunkset:
                     response = await asyncio.gather(
-                        *[self._is_reachable(session, address) for address in batchset]
+                        *[_is_address_reachable(session, address) for address in batchset]
                     )
 
                     for x in zip(response, batchset):
                         positive.add(x[1]) if x[0] else negative.add(x[1])
 
         return positive, negative
-
-    async def _is_reachable(
-        self, session: aiohttp.ClientSession, address: Proxy
-    ) -> bool:
-        """If a proxy address is reachable"""
-        try:
-            async with session.get(
-                URL_sanity,
-                proxy=f"http://{address}",
-                allow_redirects=False,
-                timeout=1.0,
-            ) as response:
-                return response.status == 200
-        except asyncio.TimeoutError:
-            return False

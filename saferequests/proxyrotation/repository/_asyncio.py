@@ -1,6 +1,5 @@
 import asyncio
 import platform
-from abc import ABC, abstractmethod
 from functools import reduce
 
 import aiohttp
@@ -8,6 +7,11 @@ import aiostream
 from bs4 import BeautifulSoup as BS
 
 from saferequests.datamodels import Anonymity, Proxy
+from saferequests.proxyrotation.repository import (
+    URL_freesources,
+    URL_sanity,
+    abc_Repository,
+)
 
 
 # https://github.com/MagicStack/uvloop/issues/14
@@ -16,10 +20,6 @@ if platform.system().lower() != "windows":
 
     #
     asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
-
-
-_URL_freesources = ["https://sslproxies.org", "https://free-proxy-list.net"]
-_URL_sanity = "https://ip.oxylabs.io"
 
 
 async def _batch_download(session: aiohttp.ClientSession, endpoint: str) -> set[Proxy]:
@@ -54,32 +54,6 @@ async def _batch_download(session: aiohttp.ClientSession, endpoint: str) -> set[
     return available
 
 
-class abc_Repository(ABC):
-    @abstractmethod
-    def batch_download(self) -> set[Proxy]:
-        """It downloads a batch of proxy addresses from free public sources
-
-        Returns:
-            A set of unique proxy addresses that were successfully downloaded.
-        """
-
-    @abstractmethod
-    def reachability(
-        self, available: set[Proxy], batchsize: int = 0
-    ) -> tuple[set[Proxy], set[Proxy]]:
-        """
-        Check the availability of a given set of proxies.
-
-        Args:
-            available (set[Proxy]): A set of proxy addresses to check.
-
-        Returns:
-            tuple[set[Proxy], set[Proxy]]: A tuple containing two sets:
-                - The first set contains proxies that are still alive.
-                - The second set contains proxies that are not alive.
-        """
-
-
 class Repository(abc_Repository):
     def batch_download(self) -> set[Proxy]:
         return asyncio.run(self._batch_download())
@@ -94,7 +68,7 @@ class Repository(abc_Repository):
 
         async with aiohttp.ClientSession(timeout=timeout) as session:
             available = await asyncio.gather(
-                *[_batch_download(session, endpoint) for endpoint in _URL_freesources]
+                *[_batch_download(session, endpoint) for endpoint in URL_freesources]
             )
 
         available = reduce(lambda x, y: x | y, available)
@@ -128,7 +102,7 @@ class Repository(abc_Repository):
         """If a proxy address is reachable"""
         try:
             async with session.get(
-                _URL_sanity,
+                URL_sanity,
                 proxy=f"http://{address}",
                 allow_redirects=False,
                 timeout=1.0,

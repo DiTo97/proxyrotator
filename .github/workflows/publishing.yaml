@@ -1,0 +1,18 @@
+name: publishing
+
+on:
+  release:
+    types:
+      - published
+
+jobs:
+  publishing:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+    - uses: JRubics/poetry-publish@v1
+      with:
+        python_version: "3.10"
+        pypi_token: ${{ secrets.PYPI_API_TOKEN }}
+        ignore_dev_requirements: "yes"

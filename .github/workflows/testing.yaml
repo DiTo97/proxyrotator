@@ -1,0 +1,55 @@
+name: testing
+
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - main
+
+jobs:
+  testing:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [macos-latest, ubuntu-latest, windows-latest]
+
+    steps:
+    - uses: actions/checkout@v4
+    - uses: actions/setup-python@v5
+      with:
+        python-version: "3.10"
+        cache: "pip"
+
+    - uses: snok/install-poetry@v1
+
+    - name: dependencies
+      run: |
+        poetry install
+
+    - name: testing with coverage
+      run: |
+        poetry run pytest --cov=saferequests --cov-report=xml tests/
+      env:
+        COVERAGE_FILE: ${{ runner.workspace }}/coverage.xml
+
+    - name: coverage satisfaction
+      run: |
+        coverage=$(grep -oPm1 'line-rate="\K[^"]+' ${{ runner.workspace }}/coverage.xml | awk '{printf "%.2f\n", $1 * 100}')
+
+        if [ $(bc <<< "$coverage < 95.00") -eq 0 ]
+        then
+            echo "coverage is below 95.00% ($coverage%)"
+            exit 1
+        fi
+
+    - name: coverage report to codecov
+      uses: codecov/codecov-action@v3
+      with:
+        fail_ci_if_error: true
+        file: ${{ runner.workspace }}/coverage.xml
+        flags: unittesting
+        name: unittesting-coverage
+        token: ${{ secrets.CODECOV_TOKEN }}
+        verbose: true

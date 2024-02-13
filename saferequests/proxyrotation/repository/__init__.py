@@ -17,25 +17,11 @@ class abc_Repository(ABC):
 
     @abstractmethod
     def batch_download(self) -> set[Proxy]:
-        """It downloads a batch of proxy addresses from free public sources
-
-        Returns:
-            A set of unique proxy addresses that were successfully downloaded.
-        """
+        """It downloads a batch of proxy addresses from free public sources"""
 
     @abstractmethod
     def reachability(self, available: set[Proxy]) -> tuple[set[Proxy], set[Proxy]]:
-        """
-        It checks the availability of a given set of proxies.
-
-        Args:
-            available (set[Proxy]): A set of proxy addresses to check.
-
-        Returns:
-            tuple[set[Proxy], set[Proxy]]: A tuple containing two sets:
-                - The first set contains proxies that are still alive.
-                - The second set contains proxies that are not alive.
-        """
+        """It separates available proxy addresses into reachable and unreachable"""
 
 
 def from_name(repository: str, *args: Any, **kwargs: Any) -> abc_Repository:

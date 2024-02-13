@@ -10,6 +10,11 @@ URL_sanity = "https://ip.oxylabs.io"
 
 
 class abc_Repository(ABC):
+    _batchsize: int
+
+    def __init__(self, batchsize: int = 0) -> None:
+        self._batchsize = batchsize
+
     @abstractmethod
     def batch_download(self) -> set[Proxy]:
         """It downloads a batch of proxy addresses from free public sources
@@ -19,11 +24,9 @@ class abc_Repository(ABC):
         """
 
     @abstractmethod
-    def reachability(
-        self, available: set[Proxy], batchsize: int = 0
-    ) -> tuple[set[Proxy], set[Proxy]]:
+    def reachability(self, available: set[Proxy]) -> tuple[set[Proxy], set[Proxy]]:
         """
-        Check the availability of a given set of proxies.
+        It checks the availability of a given set of proxies.
 
         Args:
             available (set[Proxy]): A set of proxy addresses to check.

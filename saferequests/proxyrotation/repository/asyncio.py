@@ -66,7 +66,8 @@ async def _is_address_reachable(session: aiohttp.ClientSession, address: Proxy) 
             return response.status == 200
     except (
         aiohttp.ClientOSError, 
-        aiohttp.ClientProxyConnectionError, 
+        aiohttp.ClientProxyConnectionError,
+        aiohttp.ServerDisconnectedError,
         asyncio.TimeoutError
     ):
         return False

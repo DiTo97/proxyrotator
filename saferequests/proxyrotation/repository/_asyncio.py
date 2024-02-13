@@ -54,9 +54,7 @@ async def _batch_download(session: aiohttp.ClientSession, endpoint: str) -> set[
     return available
 
 
-async def _is_address_reachable(
-    self, session: aiohttp.ClientSession, address: Proxy
-) -> bool:
+async def _is_address_reachable(session: aiohttp.ClientSession, address: Proxy) -> bool:
     """If a proxy address is reachable"""
     try:
         async with session.get(

@@ -40,7 +40,7 @@ class abc_Repository(ABC):
 
 def from_name(repository: str, *args: Any, **kwargs: Any) -> abc_Repository:
     """A factory method for repository import"""
-    module = f"saferequests.proxyrotation.repository._{repository}"
+    module = f"saferequests.proxyrotation.repository.{repository}"
     module = importlib.import_module(module)
 
     instance = module.Repository(*args, **kwargs)

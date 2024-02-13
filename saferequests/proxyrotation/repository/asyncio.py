@@ -61,10 +61,10 @@ async def _is_address_reachable(session: aiohttp.ClientSession, address: Proxy) 
             URL_sanity,
             proxy=f"http://{address}",
             allow_redirects=False,
-            timeout=1.0,
+            timeout=3.0,
         ) as response:
             return response.status == 200
-    except asyncio.TimeoutError:
+    except (aiohttp.ClientProxyConnectionError, asyncio.TimeoutError):
         return False
 
 

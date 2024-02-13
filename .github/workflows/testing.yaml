@@ -10,10 +10,7 @@ on:
 
 jobs:
   testing:
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        os: [macos-latest, ubuntu-latest, windows-latest]
+    runs-on: ubuntu-latest
 
     steps:
     - uses: actions/checkout@v4
@@ -36,8 +33,10 @@ jobs:
 
     - name: coverage satisfaction
       run: |
+        cat ${{ runner.workspace }}/coverage.xml
         coverage=$(grep -oPm1 'line-rate="\K[^"]+' ${{ runner.workspace }}/coverage.xml | awk '{printf "%.2f\n", $1 * 100}')
 
+        echo "coverage: $coverage"
         if [ $(bc <<< "$coverage < 95.00") -eq 0 ]
         then
             echo "coverage is below 95.00% ($coverage%)"

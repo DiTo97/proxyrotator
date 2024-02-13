@@ -64,7 +64,11 @@ async def _is_address_reachable(session: aiohttp.ClientSession, address: Proxy) 
             timeout=3.0,
         ) as response:
             return response.status == 200
-    except (aiohttp.ClientProxyConnectionError, asyncio.TimeoutError):
+    except (
+        aiohttp.ClientOSError, 
+        aiohttp.ClientProxyConnectionError, 
+        asyncio.TimeoutError
+    ):
         return False
 
 
@@ -95,7 +99,7 @@ class Repository(abc_Repository):
         batchsize = self._batchsize if self._batchsize > 0 else len(available)
         batchsize = min(batchsize, len(available))
 
-        async with aiohttp.ClientSession(timeout=timeout, trust_env=True) as session:
+        async with aiohttp.ClientSession(timeout=timeout) as session:
             iterator = aiostream.stream.iterate(available)
             iterator = aiostream.stream.chunks(iterator, batchsize)
 

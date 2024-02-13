@@ -12,7 +12,7 @@ URL_sanity = "https://ip.oxylabs.io"
 class abc_Repository(ABC):
     _batchsize: int
 
-    def __init__(self, batchsize: int = 0) -> None:
+    def __init__(self, batchsize: int = 10) -> None:
         self._batchsize = batchsize
 
     @abstractmethod

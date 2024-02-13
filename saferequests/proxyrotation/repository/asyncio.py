@@ -95,7 +95,7 @@ class Repository(abc_Repository):
         batchsize = self._batchsize if self._batchsize > 0 else len(available)
         batchsize = min(batchsize, len(available))
 
-        async with aiohttp.ClientSession(timeout=timeout) as session:
+        async with aiohttp.ClientSession(timeout=timeout, trust_env=True) as session:
             iterator = aiostream.stream.iterate(available)
             iterator = aiostream.stream.chunks(iterator, batchsize)
 

@@ -52,6 +52,3 @@ lines_after_imports = 2
 multi_line_output = 3
 profile = "black"
 py_version = 310
-
-[tool.poetry.plugins."poetry.plugins.python"]
-version = "^0.2.0"

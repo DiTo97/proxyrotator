@@ -7,12 +7,18 @@ A drop-in replacement for requests with automatic proxy rotation for web scrapin
 
 .. toctree::
    :maxdepth: 2
-   :caption: contents
+   :caption: user guide
+
+   getting-started.rst
+
+.. toctree::
+   :maxdepth: 2
+   :caption: submodules
 
    saferequests/datamodels.rst
    saferequests/logging.rst
    saferequests/methods.rst
-   saferequests/proxyrotator.rst
+   saferequests/proxyrotation.rst
    saferequests/sessions.rst
 
 indices and tables

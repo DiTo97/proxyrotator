@@ -25,6 +25,11 @@ pytest = "^7.4"
 pytest-asyncio = "^0.23"
 pytest-cov = "^4.1"
 codecov = "^2.1"
+
+[tool.poetry.group.docs]
+optional = true
+
+[tool.poetry.group.docs.dependencies]
 sphinx = "^7.2"
 sphinx-autodoc-typehints = "^1.25"
 

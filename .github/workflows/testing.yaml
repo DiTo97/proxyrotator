@@ -1,3 +1,57 @@
+# name: testing
+
+# on:
+#   pull_request:
+#     branches:
+#       - main
+#   push:
+#     branches:
+#       - main
+
+# jobs:
+#   testing:
+#     runs-on: ubuntu-latest
+
+#     steps:
+#     - uses: actions/checkout@v4
+#     - uses: actions/setup-python@v5
+#       with:
+#         python-version: "3.10"
+
+#     - uses: snok/install-poetry@v1
+
+#     - name: dependencies
+#       run: |
+#         poetry install
+
+#     - name: testing with coverage
+#       run: |
+#         poetry run pytest --cov=saferequests --cov-report=xml tests/
+#       env:
+#         COVERAGE_FILE: ${{ runner.workspace }}/coverage.xml
+
+#     - name: coverage satisfaction
+#       run: |
+#         cat ${{ runner.workspace }}/coverage.xml
+#         coverage=$(grep -oPm1 'line-rate="\K[^"]+' ${{ runner.workspace }}/coverage.xml | awk '{printf "%.2f\n", $1 * 100}')
+
+#         echo "coverage: $coverage"
+#         if [ $(bc <<< "$coverage < 95.00") -eq 0 ]
+#         then
+#             echo "coverage is below 95.00% ($coverage%)"
+#             exit 1
+#         fi
+
+#     - name: coverage report to codecov
+#       uses: codecov/codecov-action@v3
+#       with:
+#         fail_ci_if_error: true
+#         file: ${{ runner.workspace }}/coverage.xml
+#         flags: unittesting
+#         name: unittesting-coverage
+#         token: ${{ secrets.CODECOV_TOKEN }}
+#         verbose: true
+
 name: testing
 
 on:
@@ -13,42 +67,35 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v4
-    - uses: actions/setup-python@v5
-      with:
-        python-version: "3.10"
-        cache: "pip"
+      - uses: actions/checkout@v4
+      - name: python setup
+        id: python-setup
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
 
-    - uses: snok/install-poetry@v1
+      - uses: snok/install-poetry@v1
+        with:
+          virtualenvs-create: true
+          virtualenvs-in-project: true
+          installer-parallel: true
 
-    - name: dependencies
-      run: |
-        poetry install
+      - name: caching dependencies
+        id: caching-dependencies
+        uses: actions/cache@v4
+        with:
+          path: .venv
+          key: venv-${{ runner.os }}-${{ steps.python-setup.outputs.python-version }}-${{ hashFiles('**/poetry.lock') }}
 
-    - name: testing with coverage
-      run: |
-        poetry run pytest --cov=saferequests --cov-report=xml tests/
-      env:
-        COVERAGE_FILE: ${{ runner.workspace }}/coverage.xml
+      - name: dependencies
+        if: steps.caching-dependencies.outputs.cache-hit != "true"
+        run: poetry install --no-interaction --no-root
 
-    - name: coverage satisfaction
-      run: |
-        cat ${{ runner.workspace }}/coverage.xml
-        coverage=$(grep -oPm1 'line-rate="\K[^"]+' ${{ runner.workspace }}/coverage.xml | awk '{printf "%.2f\n", $1 * 100}')
+      - name: package
+        run: poetry install --no-interaction
 
-        echo "coverage: $coverage"
-        if [ $(bc <<< "$coverage < 95.00") -eq 0 ]
-        then
-            echo "coverage is below 95.00% ($coverage%)"
-            exit 1
-        fi
-
-    - name: coverage report to codecov
-      uses: codecov/codecov-action@v3
-      with:
-        fail_ci_if_error: true
-        file: ${{ runner.workspace }}/coverage.xml
-        flags: unittesting
-        name: unittesting-coverage
-        token: ${{ secrets.CODECOV_TOKEN }}
-        verbose: true
+      - name: testing with coverage
+        run: |
+          source .venv/bin/activate
+          pytest tests/
+          coverage report

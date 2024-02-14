@@ -88,7 +88,7 @@ jobs:
           key: venv-${{ runner.os }}-${{ steps.python-setup.outputs.python-version }}-${{ hashFiles('**/poetry.lock') }}
 
       - name: dependencies
-        if: steps.caching-dependencies.outputs.cache-hit != "true"
+        if: steps.caching-dependencies.outputs.cache-hit != 'true'
         run: poetry install --no-interaction --no-root
 
       - name: package

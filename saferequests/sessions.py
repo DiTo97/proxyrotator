@@ -21,6 +21,10 @@ class Session(requests.Session):
     def request(
         self, method: str, url: str, *args: Any, **kwargs: Any
     ) -> requests.Response:
+        """It constructs, prepares and sends a :class:`Request <requests.Request>`
+
+        For more information, see :meth:`Session.request <requests.sessions.Session.request>` docstring.
+        """
         if not self._rotator.selected:
             self._rotator.rotate()
 

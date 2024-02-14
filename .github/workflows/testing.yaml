@@ -1,57 +1,3 @@
-# name: testing
-
-# on:
-#   pull_request:
-#     branches:
-#       - main
-#   push:
-#     branches:
-#       - main
-
-# jobs:
-#   testing:
-#     runs-on: ubuntu-latest
-
-#     steps:
-#     - uses: actions/checkout@v4
-#     - uses: actions/setup-python@v5
-#       with:
-#         python-version: "3.10"
-
-#     - uses: snok/install-poetry@v1
-
-#     - name: dependencies
-#       run: |
-#         poetry install
-
-#     - name: testing with coverage
-#       run: |
-#         poetry run pytest --cov=saferequests --cov-report=xml tests/
-#       env:
-#         COVERAGE_FILE: ${{ runner.workspace }}/coverage.xml
-
-#     - name: coverage satisfaction
-#       run: |
-#         cat ${{ runner.workspace }}/coverage.xml
-#         coverage=$(grep -oPm1 'line-rate="\K[^"]+' ${{ runner.workspace }}/coverage.xml | awk '{printf "%.2f\n", $1 * 100}')
-
-#         echo "coverage: $coverage"
-#         if [ $(bc <<< "$coverage < 95.00") -eq 0 ]
-#         then
-#             echo "coverage is below 95.00% ($coverage%)"
-#             exit 1
-#         fi
-
-#     - name: coverage report to codecov
-#       uses: codecov/codecov-action@v3
-#       with:
-#         fail_ci_if_error: true
-#         file: ${{ runner.workspace }}/coverage.xml
-#         flags: unittesting
-#         name: unittesting-coverage
-#         token: ${{ secrets.CODECOV_TOKEN }}
-#         verbose: true
-
 name: testing
 
 on:
@@ -115,12 +61,10 @@ jobs:
 
       - name: coverage satisfaction 0.95
         run: |
-          cat ./coverage.xml
-          coverage=$(grep -oPm1 'line-rate="\K[^"]+' ./coverage.xml | awk '{printf "%.2f\n", $1 * 100}')
+          coverage=$(grep -oPm1 'line-rate="\K[^"]+' ./coverage.xml | awk '{printf "%.4f\n", $1}')
 
-          echo "coverage: $coverage"
-          if [ $(bc <<< "$coverage < 95.00") -eq 0 ]
+          if [ $(bc <<< "$coverage < 0.95") -eq 1 ]
           then
-              echo "coverage is below 95.00% ($coverage%)"
+              echo "coverage is below 0.95 ($coverage)"
               exit 1
           fi

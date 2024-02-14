@@ -54,19 +54,17 @@ async def _batch_download(session: aiohttp.ClientSession, endpoint: str) -> set[
     return available
 
 
-async def _is_address_reachable(
-    self, session: aiohttp.ClientSession, address: Proxy
-) -> bool:
+async def _is_address_reachable(session: aiohttp.ClientSession, address: Proxy) -> bool:
     """If a proxy address is reachable"""
     try:
         async with session.get(
             URL_sanity,
             proxy=f"http://{address}",
             allow_redirects=False,
-            timeout=1.0,
+            timeout=3.0,
         ) as response:
             return response.status == 200
-    except asyncio.TimeoutError:
+    except (aiohttp.ClientError, asyncio.TimeoutError):
         return False
 
 
@@ -74,10 +72,8 @@ class Repository(abc_Repository):
     def batch_download(self) -> set[Proxy]:
         return asyncio.run(self._batch_download())
 
-    def reachability(
-        self, available: set[Proxy], batchsize: int = 0
-    ) -> tuple[set[Proxy], set[Proxy]]:
-        return asyncio.run(self._reachability(available, batchsize))
+    def reachability(self, available: set[Proxy]) -> tuple[set[Proxy], set[Proxy]]:
+        return asyncio.run(self._reachability(available))
 
     async def _batch_download(self) -> set[Proxy]:
         timeout = aiohttp.ClientTimeout(sock_connect=1.0, sock_read=10.0)
@@ -90,15 +86,13 @@ class Repository(abc_Repository):
         available = reduce(lambda x, y: x | y, available)
         return available
 
-    async def _reachability(
-        self, available: set[Proxy], batchsize: int = 0
-    ) -> tuple[set[Proxy], set[Proxy]]:
+    async def _reachability(self, available: set[Proxy]) -> tuple[set[Proxy], set[Proxy]]:
         timeout = aiohttp.ClientTimeout(sock_connect=10.0, sock_read=1.0)
 
         positive = set()
         negative = set()
 
-        batchsize = batchsize if batchsize > 0 else len(available)
+        batchsize = self._batchsize if self._batchsize > 0 else len(available)
         batchsize = min(batchsize, len(available))
 
         async with aiohttp.ClientSession(timeout=timeout) as session:

@@ -49,7 +49,7 @@ class ProxyRotator:
         countryset: set[str] | None = None,
         livecheck: bool = False,
         maxshape: int = 0,
-        repository: str = "asyncio",
+        repository: str | abc_Repository = "asyncio",
         schedule: float = 0.0,
         secure: bool = True,
     ):
@@ -61,7 +61,7 @@ class ProxyRotator:
         self._livecheck = livecheck
         self._maxshape = maxshape
         self._crawledset = set()
-        self._repository = from_name(repository)
+        self._repository = from_name(repository) if isinstance(repository, str) else repository
         self._schedule = schedule
         self._secure = secure
         self._selected = None

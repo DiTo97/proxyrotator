@@ -112,3 +112,15 @@ jobs:
           file: ./coverage.xml
           token: ${{ secrets.CODECOV_TOKEN }}
           verbose: true
+
+      - name: coverage satisfaction 0.95
+        run: |
+          cat ./coverage.xml
+          coverage=$(grep -oPm1 'line-rate="\K[^"]+' ${{ runner.workspace }}/coverage.xml | awk '{printf "%.2f\n", $1 * 100}')
+
+          echo "coverage: $coverage"
+          if [ $(bc <<< "$coverage < 95.00") -eq 0 ]
+          then
+              echo "coverage is below 95.00% ($coverage%)"
+              exit 1
+          fi

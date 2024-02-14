@@ -74,7 +74,15 @@ jobs:
         with:
           python-version: '3.10'
 
+      - name: caching poetry
+        id: caching-poetry
+        uses: actions/cache@v4
+        with:
+          path: ~/.local
+          key: poetry-${{ runner.os }}-${{ steps.python-setup.outputs.python-version }}
+
       - uses: snok/install-poetry@v1
+        if: steps.caching-poetry.outputs.cache-hit != 'true'
         with:
           virtualenvs-create: true
           virtualenvs-in-project: true
